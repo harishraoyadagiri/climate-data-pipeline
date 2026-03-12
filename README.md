@@ -157,3 +157,116 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) with 4 jobs:
 - **CI/CD** — GitHub Actions
 - **Testing** — pytest, flake8, black
 - **Data Source** — Open-Meteo Historical Weather API (free, no API key)
+
+---
+
+## Walkthrough: Docker + dbt + CI/CD
+
+### 1. Docker Containerization
+
+Created a two-container setup:
+
+| File | Purpose |
+|------|---------|
+| `Dockerfile` | Pipeline runner — Python 3.11, runs ETL |
+| `Dockerfile.dashboard` | Streamlit dashboard with health check |
+| `docker-compose.yml` | Orchestrates both, shared `./data` volume |
+| `.dockerignore` | Excludes caches and data from build |
+
+**Key design decisions:**
+- Pipeline container runs ETL then exits; dashboard waits for it via `depends_on: service_completed_successfully`
+- Both share `./data` volume so the warehouse persists locally
+- Dashboard has a health check on `/_stcore/health`
+
+---
+
+### 2. dbt Transformation Layer
+
+Created a full dbt project using `dbt-duckdb` adapter:
+
+```
+dbt_project/
+├── dbt_project.yml          # Project config
+├── profiles.yml             # DuckDB connection
+└── models/
+    ├── schema.yml           # Tests: not_null, unique, accepted_values
+    ├── staging/
+    │   ├── sources.yml      # Raw table definitions
+    │   ├── stg_weather.sql  # Cleaned facts + temp_range
+    │   ├── stg_cities.sql   # City dimension
+    │   └── stg_dates.sql    # Date dimension
+    └── marts/
+        ├── mart_city_daily.sql    # Denormalized daily (star→flat)
+        ├── mart_city_monthly.sql  # Monthly aggregates
+        └── mart_city_summary.sql  # City climate profiles
+```
+
+**Pipeline integration:** Added `--dbt` flag to `pipeline.py` — exports SQLite → DuckDB, then runs `dbt run` + `dbt test`.
+
+---
+
+### 3. CI/CD (GitHub Actions)
+
+`.github/workflows/ci.yml` — 4 jobs:
+
+| Job | Steps |
+|-----|-------|
+| **test** | `pytest` — 32 tests |
+| **lint** | `flake8` + `black --check` |
+| **docker** | Build both images, verify startup |
+| **dbt** | `dbt debug` + `dbt compile` |
+
+---
+
+### 4. Developer Tooling
+
+| File | Purpose |
+|------|---------|
+| `Makefile` | 15 commands: `make run`, `make dbt-run`, `make docker-up`, etc. |
+| `.flake8` | Linter config (120 char lines, dashboard exemptions) |
+| `requirements.txt` | Added dbt-duckdb, duckdb, flake8, black |
+
+---
+
+## Final Project Structure
+
+```
+climate-data-pipeline/
+├── .dockerignore
+├── .flake8
+├── .github/workflows/ci.yml
+├── Dockerfile
+├── Dockerfile.dashboard
+├── docker-compose.yml
+├── Makefile
+├── README.md
+├── requirements.txt
+├── config.py
+├── ingest.py
+├── transform.py
+├── quality.py
+├── load.py
+├── pipeline.py
+├── dashboard.py
+├── dbt_project/
+│   ├── dbt_project.yml
+│   ├── profiles.yml
+│   └── models/
+│       ├── schema.yml
+│       ├── staging/
+│       │   ├── sources.yml
+│       │   ├── stg_weather.sql
+│       │   ├── stg_cities.sql
+│       │   └── stg_dates.sql
+│       └── marts/
+│           ├── mart_city_daily.sql
+│           ├── mart_city_monthly.sql
+│           └── mart_city_summary.sql
+├── tests/
+│   ├── __init__.py
+│   └── test_pipeline.py
+└── data/
+    ├── raw/
+    ├── processed/
+    └── warehouse.db
+```
