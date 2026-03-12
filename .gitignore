@@ -1,6 +1,7 @@
 # Data and DBs
-data/
-*.db
+data/raw/
+data/processed/
+!data/warehouse.db
 *.json
 
 # Python
