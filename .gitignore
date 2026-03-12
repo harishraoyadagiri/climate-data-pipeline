@@ -1,0 +1,27 @@
+# Data and DBs
+data/
+*.db
+*.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+ENV/
+.pytest_cache/
+
+# dbt
+dbt_project/target/
+dbt_project/dbt_packages/
+dbt_project/logs/
+profiles.yml
+
+# Docker
+.docker_compose_data/
+
+# OS
+.DS_Store
+Thumbs.db

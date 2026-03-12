@@ -1,0 +1,83 @@
+version: 2
+
+models:
+  # ── Staging ──
+  - name: stg_weather
+    description: "Cleaned daily weather facts"
+    columns:
+      - name: city_id
+        tests: [not_null]
+      - name: date_id
+        tests: [not_null]
+      - name: temp_avg
+        tests: [not_null]
+      - name: humidity_avg
+        description: "Average relative humidity (%)"
+        tests:
+          - not_null
+      - name: precip_total
+        tests:
+          - not_null
+      - name: precip_category
+        tests:
+          - accepted_values:
+              values: ['Dry', 'Light', 'Moderate', 'Heavy', 'Extreme']
+
+  - name: stg_cities
+    description: "City dimension with geographic metadata"
+    columns:
+      - name: city_id
+        tests: [unique, not_null]
+      - name: city_key
+        tests: [unique, not_null]
+      - name: city_name
+        tests: [not_null]
+      - name: state
+        tests: [not_null]
+
+  - name: stg_dates
+    description: "Date dimension with calendar attributes"
+    columns:
+      - name: date_id
+        tests: [unique, not_null]
+      - name: year
+        tests: [not_null]
+      - name: season
+        tests:
+          - accepted_values:
+              values: ['Winter', 'Spring', 'Summer', 'Fall']
+
+  # ── Marts ──
+  - name: mart_city_daily
+    description: "Denormalized daily weather joined with city and date dimensions"
+    columns:
+      - name: city_name
+        tests: [not_null]
+      - name: date
+        tests: [not_null]
+      - name: temp_avg
+        tests: [not_null]
+
+  - name: mart_city_monthly
+    description: "Monthly weather aggregations per city"
+    columns:
+      - name: city_name
+        tests: [not_null]
+      - name: year
+        tests: [not_null]
+      - name: month
+        tests: [not_null]
+      - name: days_recorded
+        description: "Number of days with data in the month"
+        tests:
+          - not_null
+
+  - name: mart_city_summary
+    description: "Overall climate profile per city"
+    columns:
+      - name: city_name
+        tests: [unique, not_null]
+      - name: total_days
+        tests: [not_null]
+      - name: avg_temp
+        tests: [not_null]

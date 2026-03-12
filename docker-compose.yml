@@ -1,0 +1,39 @@
+# ─────────────────────────────────────────────────
+# Climate Data Pipeline — Docker Compose
+# ─────────────────────────────────────────────────
+# Usage:
+#   docker-compose up pipeline      # Run ETL pipeline
+#   docker-compose up dashboard     # Start Streamlit dashboard
+#   docker-compose up               # Run both
+#   docker-compose up --build       # Rebuild & run
+# ─────────────────────────────────────────────────
+
+services:
+  # ETL Pipeline — runs once, then exits
+  pipeline:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: climate-pipeline
+    volumes:
+      - ./data:/app/data
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: [ "--start", "2020-01-01", "--end", "2026-02-28", "--dbt" ]
+
+  # Streamlit Dashboard — long-running
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    container_name: climate-dashboard
+    ports:
+      - "8502:8502"
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      pipeline:
+        condition: service_completed_successfully
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped

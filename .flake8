@@ -1,0 +1,13 @@
+[flake8]
+max-line-length = 120
+extend-ignore = E203, E266, E501, W503, E402
+exclude =
+    .git,
+    __pycache__,
+    data,
+    dbt_project,
+    .github,
+    venv,
+    .venv
+per-file-ignores =
+    dashboard.py:E501

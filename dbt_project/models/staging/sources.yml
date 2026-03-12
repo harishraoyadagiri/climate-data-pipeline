@@ -1,0 +1,26 @@
+version: 2
+
+sources:
+  - name: raw
+    description: "Raw tables loaded by the Python ETL pipeline into SQLite/DuckDB"
+    schema: main
+    tables:
+      - name: fact_weather
+        description: "Daily weather aggregates per city"
+        columns:
+          - name: city_id
+            description: "FK to dim_city"
+          - name: date_id
+            description: "FK to dim_date"
+
+      - name: dim_city
+        description: "City dimension with geographic metadata"
+        columns:
+          - name: city_id
+            description: "Primary key"
+
+      - name: dim_date
+        description: "Date dimension with calendar attributes"
+        columns:
+          - name: date_id
+            description: "Primary key (YYYYMMDD format)"
